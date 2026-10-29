@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Nuvio">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#08080A">
+    
+    <title>Nuvio — Minimalist Offline Music Player</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Google Fonts: Plus Jakarta Sans for high-end luxury typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#08080A',
+                        cardBg: 'rgba(20, 20, 26, 0.65)',
+                        cardBorder: 'rgba(255, 255, 255, 0.08)',
+                        platinumAccent: '#E2E8F0',
+                        silverGlow: 'rgba(226, 232, 240, 0.25)',
+                        platinum: '#F1F5F9',
+                        mutedText: '#94A3B8',
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'glow': '0 0 25px -5px rgba(226, 232, 240, 0.25)',
+                        'pill-glow': '0 0 15px 2px rgba(255, 255, 255, 0.2)',
+                        'silver-disc': '0 8px 32px 0 rgba(255, 255, 255, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Smooth Scrollbar & Glassmorphic Utilities */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: #08080A;
+            color: #F1F5F9;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphic Effects */
+        .glass-panel {
+            background: rgba(20, 20, 26, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-nav {
+            background: rgba(12, 12, 16, 0.82);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* iOS-Style Tab Glider Indicator */
+        .tab-glider {
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.08));
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 9999px;
+            transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Custom Sleek Slider Timeline Range Input */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 3px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 9999px;
+            transition: all 0.2s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -4.5px;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+            transition: transform 0.15s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+
+        /* Hide scrollbars for crisp layout */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Animated Audio Visualizer Bars */
+        .bar {
+            width: 3px;
+            border-radius: 3px;
+            background: #E2E8F0;
+            animation: bounce 1.2s ease-in-out infinite alternate;
+        }
+        .bar:nth-child(1) { animation-delay: 0.1s; height: 12px; }
+        .bar:nth-child(2) { animation-delay: 0.4s; height: 22px; }
+        .bar:nth-child(3) { animation-delay: 0.2s; height: 16px; }
+        .bar:nth-child(4) { animation-delay: 0.6s; height: 26px; }
+        .bar:nth-child(5) { animation-delay: 0.3s; height: 10px; }
+
+        @keyframes bounce {
+            0% { transform: scaleY(0.3); opacity: 0.5; }
+            100% { transform: scaleY(1.1); opacity: 1; }
+        }
+
+        .paused .bar {
+            animation-play-state: paused !important;
+            transform: scaleY(0.2) !important;
+        }
+
+        /* Ambient Glow & Play Button Pulse Effect */
+        @keyframes ambientPulse {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(1.08); }
+        }
+
+        @keyframes playPulse {
+            0%, 100% { box-shadow: 0 0 20px 2px rgba(255, 255, 255, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.6); }
+            50% { box-shadow: 0 0 35px 8px rgba(255, 255, 255, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.8); }
+        }
+
+        .playing-btn-glow {
+            animation: playPulse 3s infinite ease-in-out;
+        }
+
+        .ambient-glow {
+            animation: ambientPulse 8s infinite ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between items-center bg-obsidian text-platinum antialiased selection:bg-white selection:text-black">
+
+    <!-- Ambient Dynamic Background Aura Glow -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div id="ambientBg" class="ambient-glow absolute -top-40 left-1/2 -translate-x-1/2 w-[550px] h-[550px] bg-slate-200/10 rounded-full blur-[140px] transition-all duration-1000"></div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="relative z-10 w-full max-w-md md:max-w-xl lg:max-w-2xl min-h-screen flex flex-col justify-between px-4 pb-32 pt-6">
+
+        <!-- APP TOP HEADER -->
+        <header class="flex items-center justify-between py-2 px-1 mb-4">
+            <div class="flex items-center space-x-2.5">
+                <!-- Custom Nuvio Logo Vector SVG -->
+                <div class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center bg-white/10 shadow-glow p-1 shrink-0">
+                    <svg viewBox="0 0 100 100" class="w-full h-full text-white fill-current" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 46 20 C 46 18 52 22 58 28 C 62 32 64 38 64 42 C 58 35 50 28 46 20 Z" />
+                        <circle cx="38" cy="62" r="14" />
+                        <rect x="46" y="20" width="7" height="42" rx="3" />
+                        <path d="M 28 72 C 38 82 52 82 62 72 C 52 86 38 86 28 72 Z" />
+                        <path d="M 32 78 C 42 88 56 88 66 78 C 56 92 42 92 32 78 Z" />
+                        <path d="M 50 62 Q 55 50 60 58 T 68 50 T 74 60 T 80 54" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <span class="text-sm tracking-[0.25em] font-semibold text-white uppercase font-sans">NUVIO</span>
+            </div>
+            
+            <div id="storageIndicator" class="text-[11px] text-mutedText flex items-center space-x-1 bg-white/5 border border-white/5 px-2.5 py-1 rounded-full">
+                <i data-lucide="hard-drive" class="w-3 h-3 text-slate-300"></i>
+                <span id="storageText">0 MB Saved</span>
+            </div>
+        </header>
+
+        <!-- MAIN VIEW SLOTS -->
+        <main class="flex-1 relative">
+
+            <!-- TAB 1: LOCAL IMPORT & MUSIC VAULT -->
+            <section id="tab-search" class="space-y-6 transition-all duration-300">
+                <!-- Header Banner -->
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extralight tracking-wide text-white">Import Music</h1>
+                    <p class="text-xs text-mutedText mt-1 font-light">Add audio files directly from your phone to build your offline library.</p>
+                </div>
+
+                <!-- Hidden Local File Input & Cover Editor Input -->
+                <input type="file" id="localAudioInput" multiple class="hidden">
+                <input type="file" id="coverImageInput" accept="image/*" class="hidden">
+
+                <!-- Interactive Importer Card -->
+                <div id="dropZone" class="glass-panel rounded-2xl p-6 border border-dashed border-white/20 flex flex-col items-center justify-center text-center space-y-4 shadow-xl hover:border-white/40 transition-all cursor-pointer group">
+                    <div class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-glow group-hover:scale-110 transition-transform">
+                        <i data-lucide="upload-cloud" class="w-7 h-7"></i>
+                    </div>
+                    <button class="px-5 py-2.5 bg-white text-black hover:bg-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 shadow-glow">
+                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                        <span>Browse Files</span>
+                    </button>
+                </div>
+
+                <!-- Recent Storage Quick Info -->
+                <div class="glass-panel p-4 rounded-2xl flex items-center justify-between text-xs border border-white/10">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <p class="text-white font-medium">100% Offline & Private</p>
+                            <p class="text-[11px] text-mutedText">Songs save directly into your browser's local vault</p>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('library')" class="text-xs text-slate-200 hover:text-white underline underline-offset-4">
+                        View Library
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 2: DOWNLOADED OFFLINE LIBRARY -->
+            <section id="tab-library" class="hidden space-y-6 transition-all duration-300">
+                <div class="flex items-end justify-between flex-wrap gap-2">
+                    <div>
+                        <h1 class="text-3xl md:text-4xl font-extralight tracking-tight text-white font-sans drop-shadow-sm">Offline Sanctuary</h1>
+                        <p class="text-[11px] uppercase tracking-[0.2em] text-mutedText/80 mt-1.5 font-medium">High Fidelity Local Audio Vault</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Quick Import Action -->
+                        <button onclick="document.getElementById('localAudioInput').click()" class="text-[11px] text-white flex items-center space-x-1.5 bg-white/10 border border-white/20 px-3 py-1.5 rounded-full hover:bg-white hover:text-black transition-all shadow-glow">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <span>Import Music</span>
+                        </button>
+
+                        <button id="clearAllDownloads" onclick="clearAllTracks()" class="text-[11px] text-red-400/80 hover:text-red-400 flex items-center space-x-1 border border-red-500/10 px-2.5 py-1.5 rounded-full hover:bg-red-500/10 transition-all">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            <span>Clear All</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Pills -->
+                <div class="flex items-center space-x-2 text-xs text-mutedText pt-1 overflow-x-auto no-scrollbar">
+                    <span id="libCountBadge" class="bg-white/10 text-slate-100 border border-white/20 px-3 py-1 rounded-full text-xs font-medium">0 Songs</span>
+                    <span class="text-white/20">•</span>
+                    <span>Saved locally for offline listening</span>
+                </div>
+
+                <!-- Saved Songs List -->
+                <div class="space-y-3" id="libraryContainer">
+                    <!-- Dynamic local tracks -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyLibraryState" class="hidden flex flex-col items-center justify-center py-16 text-center space-y-4">
+                    <div class="w-16 h-16 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center text-mutedText">
+                        <i data-lucide="music" class="w-7 h-7 stroke-[1.2]"></i>
+                    </div>
+                    <div class="space-y-1 max-w-xs">
+                        <h3 class="text-sm font-medium text-white">No Music Imported Yet</h3>
+                        <p class="text-xs text-mutedText">Tap below or go to "Import" to add audio files from your device.</p>
+                    </div>
+                    <button onclick="document.getElementById('localAudioInput').click()" class="mt-2 text-xs bg-white text-black font-semibold px-4 py-2 rounded-full hover:bg-slate-200 transition-all shadow-glow">
+                        Select Audio Files
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 3: NOW PLAYING FULL-SCREEN PLAYER -->
+            <section id="tab-player" class="hidden space-y-10 flex flex-col items-center pt-4 transition-all duration-300">
+                <!-- Album Art with Dynamic Ambient Shadow -->
+                <div class="relative group w-64 h-64 sm:w-72 sm:h-72 my-2 cursor-pointer" onclick="toggleImmersiveArtwork()" title="Tap for Fullscreen Mode">
+                    <div id="playerArtBlur" class="absolute inset-0 rounded-3xl bg-cover bg-center blur-2xl opacity-30 scale-105 transition-all duration-700"></div>
+                    <img id="playerArt" src="https://placehold.co/400x400/18181b/ffffff?text=Nuvio" alt="Album Artwork" class="relative z-10 w-full h-full object-cover rounded-3xl border border-white/10 shadow-2xl transition-all duration-500 hover:scale-[1.02]">
+                    
+                    <!-- Fullscreen Overlay Cue Badge -->
+                    <div class="absolute top-3 right-3 z-20 bg-black/50 backdrop-blur-md border border-white/20 text-white p-2 rounded-full opacity-80 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                    </div>
+
+                    <!-- Sound Wave Visualizer Badge -->
+                    <div id="visualizerContainer" class="absolute bottom-4 right-4 z-20 flex items-end space-x-1 bg-black/60 backdrop-blur-md border border-white/10 px-3 py-2 rounded-full paused">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                </div>
+
+                <!-- Track Information -->
+                <div class="text-center space-y-1.5 w-full">
+                    <h2 id="playerTitle" class="text-xl sm:text-2xl font-light tracking-wide text-white truncate px-4">Select a track</h2>
+                    <p id="playerArtist" class="text-xs sm:text-sm text-slate-300 font-normal uppercase tracking-widest truncate">Nuvio Offline</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- FULLSCREEN IMMERSIVE ARTWORK OVERLAY (Apple Music Style) -->
+    <div id="immersiveOverlay" class="fixed inset-0 z-50 bg-black flex flex-col justify-between p-6 opacity-0 pointer-events-none transition-all duration-500">
+        <!-- Background Ambient Blurred/Cover Image -->
+        <div id="immersiveBg" class="absolute inset-0 bg-cover bg-center filter blur-xl scale-110 opacity-60 transition-all duration-700"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/80"></div>
+
+        <!-- Top Header Controls -->
+        <div class="relative z-10 flex items-center justify-between pt-4">
+            <button onclick="toggleImmersiveArtwork()" class="w-10 h-10 rounded-full bg-black/40 border border-white/20 text-white flex items-center justify-center backdrop-blur-md hover:bg-white/20 transition-all">
+                <i data-lucide="chevron-down" class="w-6 h-6"></i>
+            </button>
+            <span class="text-xs tracking-[0.25em] font-semibold text-white/80 uppercase">Now Playing</span>
+            <div class="w-10 h-10"></div>
+        </div>
+
+        <!-- Center Minimalist Artwork & Title Display -->
+        <div class="relative z-10 flex flex-col items-center text-center my-auto space-y-6">
+            <div class="w-72 h-72 sm:w-80 sm:h-80 rounded-3xl overflow-hidden border border-white/20 shadow-2xl shadow-black/80">
+                <img id="immersiveArt" src="https://placehold.co/400x400/18181b/ffffff?text=Nuvio" class="w-full h-full object-cover">
+            </div>
+            <div class="space-y-1 max-w-xs">
+                <h2 id="immersiveTitle" class="text-2xl font-semibold text-white truncate drop-shadow-md">Track Name</h2>
+                <p id="immersiveArtist" class="text-sm text-slate-300 font-light truncate drop-shadow">Artist Name</p>
+            </div>
+        </div>
+
+        <!-- Floating Glass Playback Controls -->
+        <div class="relative z-10 w-full max-w-md mx-auto mb-8 glass-panel rounded-full p-4 flex items-center justify-evenly border border-white/20 shadow-2xl backdrop-blur-xl">
+            <button onclick="playPrevTrack()" class="text-white/80 hover:text-white p-2 transition-transform active:scale-90">
+                <i data-lucide="skip-back" class="w-6 h-6"></i>
+            </button>
+            
+            <button onclick="togglePlayPause()" class="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-glow hover:scale-105 active:scale-95 transition-all">
+                <i data-lucide="play" class="w-6 h-6 ml-0.5" id="immersivePlayIcon"></i>
+            </button>
+            
+            <button onclick="playNextTrack()" class="text-white/80 hover:text-white p-2 transition-transform active:scale-90">
+                <i data-lucide="skip-forward" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION TOAST MESSAGES -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 glass-panel border border-white/20 text-white px-4 py-2.5 rounded-full text-xs font-light flex items-center space-x-2 shadow-glow transition-all duration-300 opacity-0 -translate-y-8 pointer-events-none">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-slate-200"></i>
+        <span id="toastMsg">Track saved to local offline storage</span>
+    </div>
+
+    <!-- AUDIO CONTROLS & TIMELINE (Global Mini Player - Elevated to avoid touching dock & hidden on 'player' tab) -->
+    <div id="miniPlayerContainer" class="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-40 transition-all duration-300">
+        <div id="playerBar" class="glass-panel rounded-2xl p-3 border border-white/10 flex items-center justify-between shadow-2xl backdrop-blur-xl">
+            <div class="flex items-center space-x-3 truncate cursor-pointer flex-1 mr-3" onclick="switchTab('player')">
+                <img id="miniArt" src="https://placehold.co/100x100/18181b/ffffff?text=Nuvio" class="w-10 h-10 rounded-xl object-cover border border-white/10 shrink-0">
+                <div class="truncate">
+                    <p id="miniTitle" class="text-xs font-semibold text-white truncate">No Track Selected</p>
+                    <p id="miniArtist" class="text-[10px] text-mutedText truncate">Tap to open player</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 shrink-0">
+                <button id="prevBtn" onclick="playPrevTrack()" class="p-2 text-white/70 hover:text-white transition-colors">
+                    <i data-lucide="skip-back" class="w-4 h-4"></i>
+                </button>
+                <button id="playPauseBtn" onclick="togglePlayPause()" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shadow-glow hover:scale-105 active:scale-95 transition-all">
+                    <i data-lucide="play" class="w-4 h-4 ml-0.5" id="globalPlayIcon"></i>
+                </button>
+                <button id="nextBtn" onclick="playNextTrack()" class="p-2 text-white/70 hover:text-white transition-colors">
+                    <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM TAB NAVIGATION -->
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-xs px-2">
+        <div class="glass-nav relative rounded-full p-1.5 flex items-center justify-between border border-white/15 shadow-2xl">
+            <div id="tabGlider" class="tab-glider w-1/3 left-1"></div>
+            
+            <button onclick="switchTab('search')" id="nav-search" class="relative z-10 w-1/3 py-2.5 text-center text-xs font-medium text-white transition-colors flex flex-col items-center justify-center space-y-0.5">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                <span class="text-[10px] tracking-wider uppercase">Import</span>
+            </button>
+
+            <button onclick="switchTab('library')" id="nav-library" class="relative z-10 w-1/3 py-2.5 text-center text-xs font-medium text-white/60 hover:text-white transition-colors flex flex-col items-center justify-center space-y-0.5">
+                <i data-lucide="library" class="w-4 h-4"></i>
+                <span class="text-[10px] tracking-wider uppercase">Library</span>
+            </button>
+
+            <button onclick="switchTab('player')" id="nav-player" class="relative z-10 w-1/3 py-2.5 text-center text-xs font-medium text-white/60 hover:text-white transition-colors flex flex-col items-center justify-center space-y-0.5">
+                <i data-lucide="disc" class="w-4 h-4"></i>
+                <span class="text-[10px] tracking-wider uppercase">Playing</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- APP LOGIC & AUDIO ENGINE PERSISTENCE -->
+    <script>
+        // --- 0. STATE MANAGEMENT & TAB NAVIGATION ---
+        let currentTab = 'search';
+        let currentTrack = null;
+        let isPlaying = false;
+        let activeObjectUrl = null;
+        let selectedTrackForCoverEdit = null;
+        let isImmersiveActive = false;
+
+        const audio = new Audio();
+        const offlineTracksMap = new Map();
+
+        // --- FULLSCREEN IMMERSIVE TOGGLE ---
+        function toggleImmersiveArtwork() {
+            if (!currentTrack) return;
+            const overlay = document.getElementById('immersiveOverlay');
+            if (!overlay) return;
+
+            isImmersiveActive = !isImmersiveActive;
+
+            if (isImmersiveActive) {
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100');
+            } else {
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        window.toggleImmersiveArtwork = toggleImmersiveArtwork;
+
+        // --- TOAST NOTIFICATIONS & UI HELPERS ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            if (!toast || !toastMsg) return;
+
+            toastMsg.innerText = message;
+            toast.classList.remove('opacity-0', '-translate-y-8', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-8', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            ['search', 'library', 'player'].forEach(id => {
+                const section = document.getElementById(`tab-${id}`);
+                const navBtn = document.getElementById(`nav-${id}`);
+                if (section) section.classList.toggle('hidden', id !== tabId);
+                if (navBtn) {
+                    navBtn.classList.toggle('text-white', id === tabId);
+                    navBtn.classList.toggle('text-white/60', id !== tabId);
+                }
+            });
+
+            // Hide mini player bar on 'player' tab to avoid double controls
+            const miniPlayer = document.getElementById('miniPlayerContainer');
+            if (miniPlayer) {
+                if (tabId === 'player') {
+                    miniPlayer.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+                } else {
+                    miniPlayer.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                }
+            }
+
+            // Update Tab Glider Position
+            const glider = document.getElementById('tabGlider');
+            if (glider) {
+                if (tabId === 'search') glider.style.left = '4px';
+                if (tabId === 'library') glider.style.left = 'calc(33.33% + 2px)';
+                if (tabId === 'player') glider.style.left = 'calc(66.66% - 2px)';
+            }
+        }
+
+        // --- INDEXEDDB STORAGE ENGINE ---
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('NuvioMusicDB', 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('tracks')) {
+                        db.createObjectStore('tracks', { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveTrackToDB(track) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('tracks', 'readwrite');
+                const store = tx.objectStore('tracks');
+                store.put(track);
+                tx.oncomplete = () => {
+                    updateStorageIndicator();
+                    resolve();
+                };
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function loadTracksFromDB() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('tracks', 'readonly');
+                const store = tx.objectStore('tracks');
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function deleteTrackFromDB(id) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('tracks', 'readwrite');
+                const store = tx.objectStore('tracks');
+                store.delete(id);
+                tx.oncomplete = () => {
+                    updateStorageIndicator();
+                    resolve();
+                };
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function updateStorageIndicator() {
+            const tracks = await loadTracksFromDB();
+            let totalBytes = 0;
+            tracks.forEach(t => {
+                if (t.blob) totalBytes += t.blob.size || 0;
+            });
+            const mb = (totalBytes / (1024 * 1024)).toFixed(1);
+            const indicator = document.getElementById('storageText');
+            if (indicator) indicator.innerText = `${mb} MB Saved`;
+        }
+
+        // --- TRACK IMPORT & LOCAL FILE HANDLING ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            
+            // Register DropZone & File Input Listeners
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('localAudioInput');
+            const coverInput = document.getElementById('coverImageInput');
+
+            if (dropZone) {
+                dropZone.addEventListener('click', () => fileInput && fileInput.click());
+                dropZone.addEventListener('dragover', (e) => e.preventDefault());
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer.files.length) handleFileImport(e.dataTransfer.files);
+                });
+            }
+
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length) handleFileImport(e.target.files);
+                });
+            }
+
+            if (coverInput) {
+                coverInput.addEventListener('change', handleCoverImageChange);
+            }
+
+            // Load Saved Tracks
+            await renderLibrary();
+            updateStorageIndicator();
+        });
+
+        async function handleFileImport(files) {
+            let count = 0;
+            for (const file of files) {
+                const isAudio =
+                  (file.type && file.type.startsWith('audio/')) ||
+                  /\.(mp3|m4a|aac|wav|ogg|oga|flac|aif|aiff|opus)$/i.test(file.name);
+
+                if (!isAudio) continue;
+                
+                const track = {
+                    id: 'loc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    title: file.name.replace(/\.[^/.]+$/, ""),
+                    artist: 'Local Import',
+                    blob: file,
+                    coverUrl: 'https://placehold.co/400x400/18181b/ffffff?text=Nuvio',
+                    dateAdded: Date.now()
+                };
+
+                await saveTrackToDB(track);
+                count++;
+            }
+
+            if (count > 0) {
+                showToast(`Imported ${count} audio ${count === 1 ? 'file' : 'files'}`);
+                await renderLibrary();
+                switchTab('library');
+            }
+        }
+
+        async function handleCoverImageChange(e) {
+            const file = e.target.files[0];
+            if (!file || !selectedTrackForCoverEdit) return;
+
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                const newCover = evt.target.result;
+                const db = await openDB();
+                const tx = db.transaction('tracks', 'readwrite');
+                const store = tx.objectStore('tracks');
+                const track = await new Promise(r => {
+                    const req = store.get(selectedTrackForCoverEdit);
+                    req.onsuccess = () => r(req.result);
+                });
+
+                if (track) {
+                    track.coverUrl = newCover;
+                    await saveTrackToDB(track);
+                    showToast('Cover art updated');
+                    await renderLibrary();
+
+                    if (currentTrack && currentTrack.id === track.id) {
+                        currentTrack.coverUrl = newCover;
+                        updatePlayerUI(currentTrack);
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- LIBRARY RENDERING & CONTROLS ---
+        async function renderLibrary() {
+            const tracks = await loadTracksFromDB();
+            const container = document.getElementById('libraryContainer');
+            const emptyState = document.getElementById('emptyLibraryState');
+            const countBadge = document.getElementById('libCountBadge');
+
+            if (countBadge) countBadge.innerText = `${tracks.length} Songs`;
+
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (tracks.length === 0) {
+                if (emptyState) emptyState.classList.remove('hidden');
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('hidden');
+
+            tracks.forEach(track => {
+                offlineTracksMap.set(track.id, track);
+
+                const item = document.createElement('div');
+                item.className = 'glass-panel p-3 rounded-2xl flex items-center justify-between border border-white/10 hover:border-white/20 transition-all cursor-pointer group';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3 truncate flex-1" onclick="playTrack('${track.id}')">
+                        <img src="${track.coverUrl}" class="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0">
+                        <div class="truncate">
+                            <p class="text-sm font-semibold text-white truncate">${track.title}</p>
+                            <p class="text-xs text-mutedText truncate">${track.artist}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <button onclick="editTrackCover('${track.id}', event)" class="p-2 text-white/50 hover:text-white transition-colors" title="Change Artwork">
+                            <i data-lucide="image" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="removeTrack('${track.id}', event)" class="p-2 text-red-400/60 hover:text-red-400 transition-colors" title="Delete Track">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+
+            lucide.createIcons();
+        }
+
+        function editTrackCover(id, e) {
+            e.stopPropagation();
+            selectedTrackForCoverEdit = id;
+            const input = document.getElementById('coverImageInput');
+            if (input) input.click();
+        }
+
+        async function removeTrack(id, e) {
+            e.stopPropagation();
+            await deleteTrackFromDB(id);
+            offlineTracksMap.delete(id);
+            showToast('Track removed');
+            await renderLibrary();
+        }
+
+        async function clearAllTracks() {
+            if (!confirm('Are you sure you want to clear your offline library?')) return;
+            const tracks = await loadTracksFromDB();
+            for (const t of tracks) {
+                await deleteTrackFromDB(t.id);
+            }
+            offlineTracksMap.clear();
+            await renderLibrary();
+            showToast('Library cleared');
+        }
+
+        // --- PLAYBACK CONTROLLER ENGINE ---
+        function playTrack(id) {
+            const track = offlineTracksMap.get(id);
+            if (!track) return;
+
+            if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
+            activeObjectUrl = URL.createObjectURL(track.blob);
+
+            audio.src = activeObjectUrl;
+            audio.play().then(() => {
+                isPlaying = true;
+                currentTrack = track;
+                updatePlayerUI(track);
+                updatePlayIcons();
+            }).catch(err => {
+                showToast('Unable to play audio format');
+            });
+        }
+
+        function togglePlayPause() {
+            if (!currentTrack) {
+                const firstId = offlineTracksMap.keys().next().value;
+                if (firstId) playTrack(firstId);
+                return;
+            }
+
+            if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+            } else {
+                audio.play();
+                isPlaying = true;
+            }
+            updatePlayIcons();
+        }
+
+        function playNextTrack() {
+            const keys = Array.from(offlineTracksMap.keys());
+            if (!keys.length || !currentTrack) return;
+            const idx = keys.indexOf(currentTrack.id);
+            const nextKey = keys[(idx + 1) % keys.length];
+            playTrack(nextKey);
+        }
+
+        function playPrevTrack() {
+            const keys = Array.from(offlineTracksMap.keys());
+            if (!keys.length || !currentTrack) return;
+            const idx = keys.indexOf(currentTrack.id);
+            const prevKey = keys[(idx - 1 + keys.length) % keys.length];
+            playTrack(prevKey);
+        }
+
+        function updatePlayerUI(track) {
+            // Player Screen
+            const pArt = document.getElementById('playerArt');
+            const pArtBlur = document.getElementById('playerArtBlur');
+            const pTitle = document.getElementById('playerTitle');
+            const pArtist = document.getElementById('playerArtist');
+
+            if (pArt) pArt.src = track.coverUrl;
+            if (pArtBlur) pArtBlur.style.backgroundImage = `url(${track.coverUrl})`;
+            if (pTitle) pTitle.innerText = track.title;
+            if (pArtist) pArtist.innerText = track.artist;
+
+            // Immersive Overlay
+            const iArt = document.getElementById('immersiveArt');
+            const iBg = document.getElementById('immersiveBg');
+            const iTitle = document.getElementById('immersiveTitle');
+            const iArtist = document.getElementById('immersiveArtist');
+
+            if (iArt) iArt.src = track.coverUrl;
+            if (iBg) iBg.style.backgroundImage = `url(${track.coverUrl})`;
+            if (iTitle) iTitle.innerText = track.title;
+            if (iArtist) iArtist.innerText = track.artist;
+
+            // Mini Player Bar
+            const mArt = document.getElementById('miniArt');
+            const mTitle = document.getElementById('miniTitle');
+            const mArtist = document.getElementById('miniArtist');
+
+            if (mArt) mArt.src = track.coverUrl;
+            if (mTitle) mTitle.innerText = track.title;
+            if (mArtist) mArtist.innerText = track.artist;
+
+            // Update iOS / Android Lock Screen & Dynamic Island Media Metadata
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.title || 'Nuvio Track',
+                    artist: track.artist || 'Nuvio Offline',
+                    album: 'Nuvio Vault',
+                    artwork: [
+                        { src: track.coverUrl, sizes: '96x96', type: 'image/png' },
+                        { src: track.coverUrl, sizes: '128x128', type: 'image/png' },
+                        { src: track.coverUrl, sizes: '192x192', type: 'image/png' },
+                        { src: track.coverUrl, sizes: '256x256', type: 'image/png' },
+                        { src: track.coverUrl, sizes: '384x384', type: 'image/png' },
+                        { src: track.coverUrl, sizes: '512x512', type: 'image/png' }
+                    ]
+                });
+
+                // Attach Lock Screen controls
+                navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+                navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+                navigator.mediaSession.setActionHandler('previoustrack', () => playPrevTrack());
+                navigator.mediaSession.setActionHandler('nexttrack', () => playNextTrack());
+            }
+        }
+
+        function updatePlayIcons() {
+            const gIcon = document.getElementById('globalPlayIcon');
+            const iIcon = document.getElementById('immersivePlayIcon');
+            const iconName = isPlaying ? 'pause' : 'play';
+
+            if (gIcon) gIcon.setAttribute('data-lucide', iconName);
+            if (iIcon) iIcon.setAttribute('data-lucide', iconName);
+
+            lucide.createIcons();
+
+            const viz = document.getElementById('visualizerContainer');
+            if (viz) {
+                if (isPlaying) viz.classList.remove('paused');
+                else viz.classList.add('paused');
+            }
+
+            // Sync MediaSession playback state
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+            }
+        }
+
+        audio.addEventListener('ended', () => {
+            playNextTrack();
+        });
+    </script>
+</body>
+</html>
